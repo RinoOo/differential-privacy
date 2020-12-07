@@ -220,6 +220,12 @@ class AlgorithmBuilder {
     return *static_cast<Builder*>(this);
   }
 
+  Builder& SetMechanismBuilder(
+    std::unique_ptr <NumericalMechanismBuilder> mechanism_builder) {
+      mechanism_builder_ = std::move(mechanism_builder);
+      return *static_cast<Builder*>(this);
+  }
+
   Builder& SetLaplaceMechanism(
       std::unique_ptr<NumericalMechanismBuilder> mechanism_builder) {
     mechanism_builder_ = std::move(mechanism_builder);

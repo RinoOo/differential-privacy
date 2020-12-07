@@ -57,7 +57,7 @@ TYPED_TEST(CountTest, BasicTest) {
   std::vector<TypeParam> c = {1, 2, 3, 4, 2, 3};
   auto count =
       typename Count<TypeParam>::Builder()
-          .SetLaplaceMechanism(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .SetMechanismBuilder(absl::make_unique<ZeroNoiseMechanism::Builder>())
           .Build();
   ASSERT_OK(count);
   auto result = (*count)->Result(c.begin(), c.end());
@@ -69,7 +69,7 @@ TYPED_TEST(CountTest, RepeatedResultTest) {
   std::vector<TypeParam> c = {1, 2, 3, 4, 2, 3};
   auto count =
       typename Count<TypeParam>::Builder()
-          .SetLaplaceMechanism(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .SetMechanismBuilder(absl::make_unique<ZeroNoiseMechanism::Builder>())
           .Build();
   ASSERT_OK(count);
 
@@ -109,7 +109,27 @@ TEST(CountTest, ConfidenceIntervalTest) {
 TEST(CountTest, OverflowTest) {
   auto count =
       typename Count<uint64_t>::Builder()
-          .SetLaplaceMechanism(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .SetMechanismBuilder(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .Build();
+
+  CountTestPeer::AddMultipleEntries<uint64_t>(
+      1, std::numeric_limits<uint64_t>::max(), &**count);
+  (*count)->AddEntry(1);
+  (*count)->AddEntry(1);
+  (*count)->AddEntry(1);
+
+  auto result = (*count)->PartialResult();
+  ASSERT_OK(result);
+
+  EXPECT_EQ(GetValue<int64_t>(*result), std::numeric_limits<int64_t>::max());
+}
+
+TEST(CountTest, GaussianMechanismTest) {
+  auto count =
+      typename Count<uint64_t>::Builder()
+          .SetEpsilon(1)
+          .SetDelta(0.01)
+          .SetMechanismBuilder(absl::make_unique<differential_privacy::GaussianMechanism::Builder>())
           .Build();
 
   CountTestPeer::AddMultipleEntries<uint64_t>(
@@ -147,7 +167,7 @@ TEST(CountTest, MergeTest) {
   // Merge.
   auto count =
       Count<double>::Builder()
-          .SetLaplaceMechanism(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .SetMechanismBuilder(absl::make_unique<ZeroNoiseMechanism::Builder>())
           .Build();
   ASSERT_OK(count);
   (*count)->AddEntry(0);
@@ -163,7 +183,7 @@ TEST(CountTest, MergeTest) {
 TEST(CountTest, SerializeAndMergeOverflowTest) {
   auto count1 =
       Count<uint64_t>::Builder()
-          .SetLaplaceMechanism(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .SetMechanismBuilder(absl::make_unique<ZeroNoiseMechanism::Builder>())
           .Build();
   ASSERT_OK(count1);
   CountTestPeer::AddMultipleEntries<uint64_t>(
@@ -172,7 +192,7 @@ TEST(CountTest, SerializeAndMergeOverflowTest) {
 
   auto count2 =
       Count<uint64_t>::Builder()
-          .SetLaplaceMechanism(absl::make_unique<ZeroNoiseMechanism::Builder>())
+          .SetMechanismBuilder(absl::make_unique<ZeroNoiseMechanism::Builder>())
           .Build();
   ASSERT_OK(count2);
   (*count2)->AddEntry(1);
